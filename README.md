@@ -24,14 +24,38 @@ frontend/  # Angular 20 前端介面
 repos/     # 由系統建立，存放 clone 下來的 repo
 ```
 
-## 啟動後端
+## 建置 Jar（包含前端與後端）
+
+專案根目錄提供 `build.sh` 指令稿，會自動安裝前端依賴、建置 Angular 靜態檔並打包至 Spring Boot 可執行 Jar 中，同時在輸出目錄產生可供使用者調整的設定檔。
+
+```bash
+./build.sh
+```
+
+成功後會在 `build/` 資料夾得到：
+
+- `git-uploader.jar`：整合前端與後端的執行檔。
+- `config/application.properties`：外部設定檔，可於啟動前自行調整連線埠、日誌等設定。
+
+啟動方式：
+
+```bash
+cd build
+java -jar git-uploader.jar
+```
+
+啟動後瀏覽器開啟 `http://localhost:8080` 即可使用前端介面，後端 API 會以 `/api` 作為前綴。
+
+## 直接啟動後端（開發模式）
+
+若僅需在開發時啟動後端服務，可照以下方式啟動：
 
 ```bash
 cd backend
 ./mvnw spring-boot:run
 ```
 
-後端啟動後提供以下重點 API：
+後端服務啟動後提供以下重點 API：
 
 - `POST /api/pat`：儲存 PAT。
 - `GET /api/pat`：檢查 PAT 是否已設定（回傳遮罩後的內容）。
@@ -41,7 +65,7 @@ cd backend
 
 `git` 指令在執行時會透過 `backend/data/git-askpass.sh` 取得 PAT，採非互動式流程。
 
-## 啟動前端
+## 啟動前端（開發模式）
 
 ```bash
 cd frontend
@@ -49,7 +73,7 @@ npm install
 npm start
 ```
 
-前端會運作於 `http://localhost:4200`，已設定 `proxy.conf.json` 將 `/api` 代理至 `http://localhost:8080`。
+開發模式下的 Angular 仍會運作於 `http://localhost:4200`，並透過 `proxy.conf.json` 將 `/api` 代理至 `http://localhost:8080`。
 
 ## 使用流程
 
@@ -74,3 +98,4 @@ npm start
 - PAT 會以明文儲存在 `backend/data/pat.txt`，請妥善保管本機環境。
 - 若 repo 為私有並啟用了 Git LFS，系統預設會設定 `lfs.skipSmudge=true` 以避免自動下載大檔案。
 - `commit-and-push` API 僅會處理 `<當前年份>/<branch_name>` 目錄，請將要上傳的檔案放在此路徑底下。
+- Jar 會優先讀取與其同層的 `config/application.properties`，可依需求修改後再啟動服務。
