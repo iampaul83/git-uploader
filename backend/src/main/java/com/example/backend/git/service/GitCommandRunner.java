@@ -9,12 +9,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 @Component
 public class GitCommandRunner {
 
+        private static final Logger logger = LoggerFactory.getLogger(GitCommandRunner.class);
+
         public CommandResult run(Path workingDirectory, List<String> command, Map<String, String> environmentOverrides) {
+                logger.info("Running command: {} in directory: {}", String.join(" ", command), workingDirectory);
                 ProcessBuilder builder = new ProcessBuilder(command);
                 if (workingDirectory != null) {
                         builder.directory(workingDirectory.toFile());
@@ -30,6 +36,13 @@ public class GitCommandRunner {
                         String stdout = readFully(process.getInputStream());
                         String stderr = readFully(process.getErrorStream());
                         int exitCode = process.waitFor();
+                        logger.info("Command finished with exit code: {}", exitCode);
+                        if (StringUtils.hasText(stdout)) {
+                            logger.info("Stdout:\n{}", stdout);
+                        }
+                        if (StringUtils.hasText(stderr)) {
+                            logger.warn("Stderr:\n{}", stderr);
+                        }
                         return new CommandResult(exitCode, stdout, stderr, new ArrayList<>(command));
                 } catch (InterruptedException exception) {
                         Thread.currentThread().interrupt();

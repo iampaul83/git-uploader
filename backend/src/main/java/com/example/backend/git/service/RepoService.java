@@ -70,7 +70,7 @@ public class RepoService {
 
                 Map<String, String> gitEnv = patService.buildGitEnvironment();
                 gitCommandRunner.runAndEnsureSuccess(workspaceService.getReposRoot(),
-                                gitCommandRunner.command("git", "clone", parsed.url(), folderName), gitEnv,
+                                gitCommandRunner.command("git", "clone", "--filter=blob:none", "--no-checkout", parsed.url(), folderName), gitEnv,
                                 "無法 clone 遠端 Repository");
 
                 configureRepository(targetDirectory);
@@ -90,8 +90,6 @@ public class RepoService {
                 }
 
                 logger.info("Starting commitAndPush for repository: {}", repoId);
-                runAndLog(repoDirectory, "git status");
-                runAndLog(repoDirectory, "git log -n 5 --oneline --decorate --all --graph");
 
                 RepoMetadata metadata = readMetadata(repoDirectory)
                                 .orElseThrow(() -> new RepoNotFoundException("Repository 缺少 metadata: " + repoId));
@@ -142,21 +140,6 @@ public class RepoService {
                 return new CommitResponse(true, "已提交並推送至遠端分支 " + branch + "。");
         }
 
-        private void runAndLog(Path directory, String command) {
-                try {
-                        logger.info("Running command: {}", command);
-                        GitCommandRunner.CommandResult result = gitCommandRunner.run(directory,
-                                        gitCommandRunner.command(command.split(" ")), Map.of());
-                        if (StringUtils.hasText(result.stdout())) {
-                                logger.info("Stdout:\n{}", result.stdout());
-                        }
-                        if (StringUtils.hasText(result.stderr())) {
-                                logger.warn("Stderr:\n{}", result.stderr());
-                        }
-                } catch (Exception e) {
-                        logger.error("Failed to run command '{}'", command, e);
-                }
-        }
 
         private void configureRepository(Path targetDirectory) {
                 gitCommandRunner.runAndEnsureSuccess(targetDirectory,
@@ -176,11 +159,11 @@ public class RepoService {
                                         gitCommandRunner.command("git", "fetch", "origin", branch), gitEnv,
                                         "無法抓取遠端分支");
                         GitCommandRunner.CommandResult checkout = gitCommandRunner.run(repository,
-                                        gitCommandRunner.command("git", "checkout", branch), Map.of());
+                                        gitCommandRunner.command("git", "checkout", branch), gitEnv);
                         if (!checkout.isSuccess()) {
                                 gitCommandRunner.runAndEnsureSuccess(repository,
                                                 gitCommandRunner.command("git", "checkout", "-b", branch, "origin/" + branch),
-                                                Map.of(), "無法切換到目標分支");
+                                                gitEnv, "無法切換到目標分支");
                         }
                         return;
                 }
@@ -189,7 +172,7 @@ public class RepoService {
                                 gitCommandRunner.command("git", "fetch", "origin", "master"), gitEnv,
                                 "無法抓取 master 作為基底");
                 gitCommandRunner.runAndEnsureSuccess(repository,
-                                gitCommandRunner.command("git", "checkout", "-b", branch, "origin/master"), Map.of(),
+                                gitCommandRunner.command("git", "checkout", "-b", branch, "origin/master"), gitEnv,
                                 "無法建立新分支");
                 gitCommandRunner.runAndEnsureSuccess(repository,
                                 gitCommandRunner.command("git", "push", "--set-upstream", "origin", branch), gitEnv,
