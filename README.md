@@ -92,3 +92,10 @@ npm start
 - 若 repo 為私有並啟用了 Git LFS，系統預設會設定 `lfs.skipSmudge=true` 以避免自動下載大檔案。
 - `commit-and-push` API 僅會處理 `<當前年份>/<branch_name>` 目錄，請將要上傳的檔案放在此路徑底下。
 - Jar 會優先讀取與其同層的 `config/application.properties`，可依需求修改後再啟動服務。
+
+## Git 設定
+
+為了優化效能和確保穩定性，本工具會在 `clone` repository 後自動套用以下 Git 設定：
+
+- **`http.version = HTTP/1.1`**：為了解決與 Azure DevOps 之間潛在的網路連線問題。
+- **`lfs.skipSmudge = true`**：若您的專案使用 Git LFS，此設定可以避免在 `clone` 或 `checkout` 時自動下載大檔案，從而加快操作速度。
