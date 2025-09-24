@@ -197,7 +197,7 @@ public class RepoService {
 
         private void writeMetadata(Path repository, RepoMetadata metadata) {
                 try {
-                        objectMapper.writerWithDefaultPrettyPrinter().writeValue(repository.resolve(METADATA_FILE), metadata);
+                        objectMapper.writerWithDefaultPrettyPrinter().writeValue(repository.resolve(METADATA_FILE).toFile(), metadata);
                 } catch (IOException exception) {
                         throw new InvalidRequestException("無法寫入 metadata: " + exception.getMessage());
                 }
