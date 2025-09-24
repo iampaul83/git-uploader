@@ -1,19 +1,22 @@
-# Azure DevOps Repo Uploader
+# Azure DevOps Git 上傳小工具
 
-這是一個專為個人使用而設計的簡化 Git 操作工具，後端使用 Spring Boot 3、前端使用 Angular 20。系統專注於協助管理 Azure DevOps Repos，提供 PAT 設定、快速 clone、以及針對指定資料夾的 commit / push 流程。
+這是一個專為個人使用而設計的簡化 Git 操作工具，後端使用 Spring Boot 3、前端使用 Angular 20 搭配 Angular Material 框架。系統專注於協助管理 Azure DevOps Repos，提供 PAT 設定、快速 clone、以及針對指定資料夾的 commit / push 流程。
 
 ## 功能總覽
 
 - **PAT 設定**：透過網頁介面保存 Azure DevOps Personal Access Token（儲存在 `backend/data/pat.txt`）。
 - **Repo 清單**：列出專案根目錄下 `repos/` 資料夾內已 clone 的 repository。
-- **新增 Repo**：輸入 Azure DevOps repo URL 與分支；系統會盡力從 URL 推斷分支名稱，並確保 `git clone` 使用 `--depth 1`、HTTP/1.1 以及停用 LFS smudge。
+- **新增 Repo**：輸入 Azure DevOps repo URL 與分支；系統會盡力從 URL 推斷分支名稱。
 - **自動建置結構**：clone 完成後若 repo 中不存在 `<當前年份>/<branch_name>` 目錄，會自動建立。
 - **Commit & Push**：只會針對 `<當前年份>/<branch_name>` 目錄進行 `git add` / `commit`，並在推送前自動 fast-forward 遠端更新。
+- **全新前端介面**：使用 Angular Material 打造，提供更美觀、更易用的分頁式操作介面。
 
-## 環境需求
+## 技術棧
 
 - Java 21+
-- Node.js 20+
+- Spring Boot 3
+- Angular 20
+- Angular Material
 - Git 2.40+
 
 ## 專案結構
@@ -55,16 +58,6 @@ cd backend
 ./mvnw spring-boot:run
 ```
 
-後端服務啟動後提供以下重點 API：
-
-- `POST /api/pat`：儲存 PAT。
-- `GET /api/pat`：檢查 PAT 是否已設定（回傳遮罩後的內容）。
-- `POST /api/repos`：新增 repo。
-- `POST /api/repos/{repoId}/commit-and-push`：對指定 repo 執行 commit & push。
-- `GET /api/repos`：列出所有 repo 摘要資訊。
-
-`git` 指令在執行時會透過 `backend/data/git-askpass.sh` 取得 PAT，採非互動式流程。
-
 ## 啟動前端（開發模式）
 
 ```bash
@@ -77,16 +70,16 @@ npm start
 
 ## 使用流程
 
-1. 先在介面上輸入具備 Repo 讀寫權限的 PAT。
-2. 新增 Azure DevOps repo：
-   - 若 URL 帶有 `?version=GBxxxx` 參數會自動抓取分支。
-   - 若遠端不存在該分支，會從 `master` 建立並推送。
-   - clone 目標資料夾格式為 `project_repository_branch`，統一放在 `repos/` 下。
-3. 在 repo 中編輯 `<當前年份>/<branch_name>` 資料夾。
-4. 於前端輸入 commit 訊息後按下「Commit 並 Push」。
-   - 系統會先 `git fetch` 並 fast-forward。
-   - 僅會提交指定資料夾的變更。
-   - 成功後自動推送到遠端分支。
+1.  在「設定 PAT」分頁中，輸入具備 Repo 讀寫權限的 PAT。
+2.  在「匯入 Repository」分頁中，新增 Azure DevOps repo：
+    - 若 URL 帶有 `?version=GBxxxx` 參數會自動抓取分支。
+    - 若遠端不存在該分支，會從 `master` 建立並推送。
+    - clone 目標資料夾格式為 `project_repository_branch`，統一放在 `repos/` 下。
+3.  在 repo 中編輯 `<當前年份>/<branch_name>` 資料夾。
+4.  在「已匯入的 Repos」分頁中，找到對應的 repo，輸入 commit 訊息後按下「Commit 並 Push」。
+    - 系統會先 `git fetch` 並嘗試 fast-forward 合併遠端變更。
+    - 僅會提交指定資料夾的變更。
+    - 成功後自動推送到遠端分支。
 
 ## 測試
 
