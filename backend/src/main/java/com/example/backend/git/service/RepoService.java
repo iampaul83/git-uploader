@@ -70,7 +70,7 @@ public class RepoService {
 
                 Map<String, String> gitEnv = patService.buildGitEnvironment();
                 gitCommandRunner.runAndEnsureSuccess(workspaceService.getReposRoot(),
-                                gitCommandRunner.command("git", "clone", "--filter=blob:none", "--no-checkout", parsed.url(), folderName), gitEnv,
+                                gitCommandRunner.command("git", "clone", parsed.url(), folderName), gitEnv,
                                 "無法 clone 遠端 Repository");
 
                 configureRepository(targetDirectory);
