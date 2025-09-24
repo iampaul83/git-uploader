@@ -70,7 +70,7 @@ public class RepoService {
 
                 Map<String, String> gitEnv = patService.buildGitEnvironment();
                 gitCommandRunner.runAndEnsureSuccess(workspaceService.getReposRoot(),
-                                gitCommandRunner.command("git", "clone", "--depth", "1", parsed.url(), folderName), gitEnv,
+                                gitCommandRunner.command("git", "clone", parsed.url(), folderName), gitEnv,
                                 "無法 clone 遠端 Repository");
 
                 configureRepository(targetDirectory);
@@ -112,16 +112,11 @@ public class RepoService {
                 gitCommandRunner.runAndEnsureSuccess(repoDirectory,
                                 gitCommandRunner.command("git", "checkout", branch), Map.of(), "無法切換到分支 " + branch);
                 gitCommandRunner.runAndEnsureSuccess(repoDirectory,
-                                gitCommandRunner.command("git", "fetch", "--depth", "1", "origin", branch), gitEnv,
+                                gitCommandRunner.command("git", "fetch", "origin", branch), gitEnv,
                                 "無法取得最新遠端內容");
-                GitCommandRunner.CommandResult mergeResult = gitCommandRunner.run(repoDirectory,
-                                gitCommandRunner.command("git", "merge", "--ff-only", "origin/" + branch), Map.of());
-                if (!mergeResult.isSuccess()) {
-                        // Fast-forward merge failed, try a regular merge to create a merge commit
-                        gitCommandRunner.runAndEnsureSuccess(repoDirectory,
-                                        gitCommandRunner.command("git", "merge", "--no-edit", "origin/" + branch), gitEnv,
-                                        "遠端已有更新且無法自動 merge，請手動處理後重試。");
-                }
+                gitCommandRunner.runAndEnsureSuccess(repoDirectory,
+                                gitCommandRunner.command("git", "merge", "--ff-only", "origin/" + branch), gitEnv,
+                                "遠端已有更新且無法 fast-forward，請手動處理後重試。");
 
                 String commitScope = year + "/" + sanitizedFolder;
                 gitCommandRunner.runAndEnsureSuccess(repoDirectory,
@@ -151,7 +146,7 @@ public class RepoService {
                 try {
                         logger.info("Running command: {}", command);
                         GitCommandRunner.CommandResult result = gitCommandRunner.run(directory,
-                                        gitCommandRunner.command(command), Map.of());
+                                        gitCommandRunner.command(command.split(" ")), Map.of());
                         if (StringUtils.hasText(result.stdout())) {
                                 logger.info("Stdout:\n{}", result.stdout());
                         }
@@ -178,7 +173,7 @@ public class RepoService {
                 boolean exists = lsRemote.isSuccess() && StringUtils.hasText(lsRemote.stdout());
                 if (exists) {
                         gitCommandRunner.runAndEnsureSuccess(repository,
-                                        gitCommandRunner.command("git", "fetch", "--depth", "1", "origin", branch), gitEnv,
+                                        gitCommandRunner.command("git", "fetch", "origin", branch), gitEnv,
                                         "無法抓取遠端分支");
                         GitCommandRunner.CommandResult checkout = gitCommandRunner.run(repository,
                                         gitCommandRunner.command("git", "checkout", branch), Map.of());
@@ -191,7 +186,7 @@ public class RepoService {
                 }
 
                 gitCommandRunner.runAndEnsureSuccess(repository,
-                                gitCommandRunner.command("git", "fetch", "--depth", "1", "origin", "master"), gitEnv,
+                                gitCommandRunner.command("git", "fetch", "origin", "master"), gitEnv,
                                 "無法抓取 master 作為基底");
                 gitCommandRunner.runAndEnsureSuccess(repository,
                                 gitCommandRunner.command("git", "checkout", "-b", branch, "origin/master"), Map.of(),
