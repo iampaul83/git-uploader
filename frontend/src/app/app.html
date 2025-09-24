@@ -1,9 +1,8 @@
-<div class="page">
-  <header class="page__header">
-    <h1>Azure DevOps Git 上傳小工具</h1>
-    <p>管理個人存取權杖、匯入 Repos，並快速在指定資料夾內 commit / push。</p>
-  </header>
+<mat-toolbar color="primary">
+  <h1>Azure DevOps Git 上傳小工具</h1>
+</mat-toolbar>
 
+<div class="page">
   <section class="alert" *ngIf="infoMessage() as info">
     <span class="alert__success">{{ info }}</span>
   </section>
@@ -11,92 +10,96 @@
     <span class="alert__error">{{ error }}</span>
   </section>
 
-  <section class="card">
-    <h2 class="card__title">1. 設定 Azure DevOps PAT</h2>
-    <p class="card__description">
-      需使用具有讀寫 Repo 權限的 Personal Access Token。系統僅儲存在本機 <code>backend/data/pat.txt</code>。
-    </p>
-    <p class="status" *ngIf="patStatus(); else patNotConfigured">目前已設定 PAT：<strong>{{ patStatus()!.maskedPat }}</strong></p>
-    <ng-template #patNotConfigured>
-      <p class="status status--warn">尚未設定 PAT，請先建立後再進行 clone / push。</p>
-    </ng-template>
-    <form class="form" [formGroup]="patForm" (ngSubmit)="savePat()">
-      <label class="form__label" for="pat">Personal Access Token</label>
-      <input
-        id="pat"
-        type="password"
-        class="form__input"
-        [class.form__input--error]="patForm.controls.pat.invalid && patForm.controls.pat.touched"
-        autocomplete="off"
-        formControlName="pat"
-        placeholder="輸入 Azure DevOps PAT"
-      />
-      <div class="form__error" *ngIf="patForm.controls.pat.invalid && patForm.controls.pat.touched">
-        必填欄位。
+  <mat-tab-group>
+    <mat-tab label="1. 設定 PAT">
+      <div class="tab-content">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>設定 Azure DevOps PAT</mat-card-title>
+            <mat-card-subtitle>需使用具有讀寫 Repo 權限的 Personal Access Token。系統僅儲存在本機 <code>backend/data/pat.txt</code>。</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <p class="status" *ngIf="patStatus(); else patNotConfigured">目前已設定 PAT：<strong>{{ patStatus()!.maskedPat }}</strong></p>
+            <ng-template #patNotConfigured>
+              <p class="status status--warn">尚未設定 PAT，請先建立後再進行 clone / push。</p>
+            </ng-template>
+            <form class="form" [formGroup]="patForm" (ngSubmit)="savePat()">
+              <mat-form-field appearance="fill">
+                <mat-label>Personal Access Token</mat-label>
+                <input matInput type="password" formControlName="pat" placeholder="輸入 Azure DevOps PAT">
+                <mat-error *ngIf="patForm.controls.pat.invalid && patForm.controls.pat.touched">
+                  必填欄位。
+                </mat-error>
+              </mat-form-field>
+              <button mat-raised-button color="primary" type="submit" [disabled]="patLoading()">
+                {{ patLoading() ? '儲存中...' : '儲存 PAT' }}
+              </button>
+            </form>
+          </mat-card-content>
+        </mat-card>
       </div>
-      <button class="button" type="submit" [disabled]="patLoading()">
-        {{ patLoading() ? '儲存中...' : '儲存 PAT' }}
-      </button>
-    </form>
-  </section>
+    </mat-tab>
 
-  <section class="card">
-    <h2 class="card__title">2. 匯入 Repository</h2>
-    <p class="card__description">
-      請輸入 Azure DevOps repo URL。系統會嘗試從 URL 推斷分支；若無法判斷，需手動填寫。分支不存在時會自動從 master 建立。
-    </p>
-    <form class="form" [formGroup]="repoForm" (ngSubmit)="addRepo()">
-      <label class="form__label" for="repo-url">Repo URL</label>
-      <input
-        id="repo-url"
-        type="text"
-        class="form__input"
-        [class.form__input--error]="repoForm.controls.url.invalid && repoForm.controls.url.touched"
-        placeholder="https://dev.azure.com/.../_git/your-repo"
-        formControlName="url"
-      />
-      <div class="form__error" *ngIf="repoForm.controls.url.invalid && repoForm.controls.url.touched">
-        請輸入正確的 URL。
+    <mat-tab label="2. 匯入 Repository">
+      <div class="tab-content">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>匯入 Repository</mat-card-title>
+            <mat-card-subtitle>請輸入 Azure DevOps repo URL。系統會嘗試從 URL 推斷分支；若無法判斷，需手動填寫。分支不存在時會自動從 master 建立。</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <form class="form" [formGroup]="repoForm" (ngSubmit)="addRepo()">
+              <mat-form-field appearance="fill">
+                <mat-label>Repo URL</mat-label>
+                <input matInput type="text" formControlName="url" placeholder="https://dev.azure.com/.../_git/your-repo">
+                <mat-error *ngIf="repoForm.controls.url.invalid && repoForm.controls.url.touched">
+                  請輸入正確的 URL。
+                </mat-error>
+              </mat-form-field>
+              <mat-form-field appearance="fill">
+                <mat-label>Branch (選填)</mat-label>
+                <input matInput type="text" formControlName="branch" placeholder="feature/demo">
+              </mat-form-field>
+              <button mat-raised-button color="primary" type="submit" [disabled]="addRepoLoading()">
+                {{ addRepoLoading() ? '處理中...' : '新增 Repo' }}
+              </button>
+            </form>
+          </mat-card-content>
+        </mat-card>
       </div>
-      <label class="form__label" for="repo-branch">Branch (選填)</label>
-      <input id="repo-branch" type="text" class="form__input" formControlName="branch" placeholder="feature/demo" />
-      <button class="button" type="submit" [disabled]="addRepoLoading()">
-        {{ addRepoLoading() ? '處理中...' : '新增 Repo' }}
-      </button>
-    </form>
-  </section>
+    </mat-tab>
 
-  <section class="card">
-    <h2 class="card__title">3. 已匯入的 Repos</h2>
-    <p class="card__description">Repo 會存放在專案 <code>repos/</code> 目錄下。</p>
-    <div class="empty" *ngIf="repoListLoading()">載入中...</div>
-    <div class="empty" *ngIf="!repoListLoading() && repos().length === 0">尚未匯入任何 Repo。</div>
-    <ul class="repo-list" *ngIf="repos().length > 0">
-      <li class="repo" *ngFor="let repo of repos(); trackBy: trackById">
-        <header class="repo__header">
-          <h3>{{ repo.project }} / {{ repo.repository }}</h3>
-          <span class="repo__branch">分支：{{ repo.branch }}</span>
-        </header>
-        <p class="repo__meta">專案資料夾：<code>{{ repo.path }}</code></p>
-        <p class="repo__meta">提交範圍：<code>{{ repo.yearBranchPath }}</code></p>
-        <div class="repo__actions">
-          <label class="form__label" [for]="'commit-' + repo.id">Commit 訊息</label>
-          <input
-            [id]="'commit-' + repo.id"
-            type="text"
-            class="form__input"
-            [class.form__input--error]="commitControl(repo.id).invalid && commitControl(repo.id).touched"
-            [formControl]="commitControl(repo.id)"
-            placeholder="例如：更新今日檔案"
-          />
-          <div class="form__error" *ngIf="commitControl(repo.id).invalid && commitControl(repo.id).touched">
-            請輸入 1~200 字的 commit 訊息。
-          </div>
-          <button class="button" type="button" (click)="commitAndPush(repo)" [disabled]="commitLoading() === repo.id">
-            {{ commitLoading() === repo.id ? '推送中...' : 'Commit 並 Push' }}
-          </button>
+    <mat-tab label="3. 已匯入的 Repos">
+      <div class="tab-content">
+        <div class="empty" *ngIf="repoListLoading()">
+          <mat-progress-bar mode="indeterminate"></mat-progress-bar>
         </div>
-      </li>
-    </ul>
-  </section>
+        <div class="empty" *ngIf="!repoListLoading() && repos().length === 0">尚未匯入任何 Repo。</div>
+        <div class="repo-list" *ngIf="repos().length > 0">
+          <mat-card class="repo" *ngFor="let repo of repos(); trackBy: trackById">
+            <mat-card-header>
+              <mat-card-title>{{ repo.project }} / {{ repo.repository }}</mat-card-title>
+              <mat-card-subtitle>分支：{{ repo.branch }}</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <p>專案資料夾：<code>{{ repo.path }}</code></p>
+              <p>提交範圍：<code>{{ repo.yearBranchPath }}</code></p>
+              <div class="repo__actions">
+                <mat-form-field appearance="fill">
+                  <mat-label>Commit 訊息</mat-label>
+                  <input matInput type="text" [formControl]="commitControl(repo.id)" placeholder="例如：更新今日檔案">
+                  <mat-error *ngIf="commitControl(repo.id).invalid && commitControl(repo.id).touched">
+                    請輸入 1~200 字的 commit 訊息。
+                  </mat-error>
+                </mat-form-field>
+                <button mat-raised-button color="primary" type="button" (click)="commitAndPush(repo)" [disabled]="commitLoading() === repo.id">
+                  {{ commitLoading() === repo.id ? '推送中...' : 'Commit 並 Push' }}
+                </button>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
 </div>
