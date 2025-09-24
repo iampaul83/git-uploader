@@ -19,12 +19,15 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 @Service
 public class RepoService {
 
+        private static final Logger logger = LoggerFactory.getLogger(RepoService.class);
         private static final String METADATA_FILE = ".git-uploader.json";
 
         private final WorkspaceService workspaceService;
@@ -86,6 +89,10 @@ public class RepoService {
                         throw new RepoNotFoundException("找不到指定的 Repository: " + repoId);
                 }
 
+                logger.info("Starting commitAndPush for repository: {}", repoId);
+                runAndLog(repoDirectory, "git status");
+                runAndLog(repoDirectory, "git log -n 5 --oneline --decorate --all --graph");
+
                 RepoMetadata metadata = readMetadata(repoDirectory)
                                 .orElseThrow(() -> new RepoNotFoundException("Repository 缺少 metadata: " + repoId));
                 Map<String, String> gitEnv = patService.buildGitEnvironment();
@@ -110,7 +117,10 @@ public class RepoService {
                 GitCommandRunner.CommandResult mergeResult = gitCommandRunner.run(repoDirectory,
                                 gitCommandRunner.command("git", "merge", "--ff-only", "origin/" + branch), Map.of());
                 if (!mergeResult.isSuccess()) {
-                        throw new InvalidRequestException("遠端已有更新且無法 fast-forward，請手動處理後重試。");
+                        // Fast-forward merge failed, try a regular merge to create a merge commit
+                        gitCommandRunner.runAndEnsureSuccess(repoDirectory,
+                                        gitCommandRunner.command("git", "merge", "--no-edit", "origin/" + branch), gitEnv,
+                                        "遠端已有更新且無法自動 merge，請手動處理後重試。");
                 }
 
                 String commitScope = year + "/" + sanitizedFolder;
@@ -135,6 +145,22 @@ public class RepoService {
                                 gitCommandRunner.command("git", "push", "origin", branch), gitEnv, "Push 失敗");
 
                 return new CommitResponse(true, "已提交並推送至遠端分支 " + branch + "。");
+        }
+
+        private void runAndLog(Path directory, String command) {
+                try {
+                        logger.info("Running command: {}", command);
+                        GitCommandRunner.CommandResult result = gitCommandRunner.run(directory,
+                                        gitCommandRunner.command(command), Map.of());
+                        if (StringUtils.hasText(result.stdout())) {
+                                logger.info("Stdout:\n{}", result.stdout());
+                        }
+                        if (StringUtils.hasText(result.stderr())) {
+                                logger.warn("Stderr:\n{}", result.stderr());
+                        }
+                } catch (Exception e) {
+                        logger.error("Failed to run command '{}'", command, e);
+                }
         }
 
         private void configureRepository(Path targetDirectory) {
